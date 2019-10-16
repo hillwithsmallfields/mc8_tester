@@ -311,6 +311,18 @@ nColumn: ")
 	     (split-string raw "[ _]")
 	     " "))
 
+(defun capitalize-first-word (str)
+  "Capitalize the first word of STR."
+  (let ((words (split-string str)))
+    (if words
+        (if (cdr words)
+            (concat
+             (capitalize (car words))
+             " "
+             (mapconcat 'identity (cdr words) " "))
+          (capitalize (car words)))
+      "")))
+
 (defun wiring-to-arduino-program ()
   "Make tables for an arduino program."
   (interactive)
@@ -352,7 +364,9 @@ nColumn: ")
 			))
 	(setq total-bytes (+ total-bytes strings-size (* 4 (length label-array)))))
       (insert "char **labels = {\n"
-	      (mapconcat #'(lambda (str) (concat "  \"" str "\""))
+	      (mapconcat #'(lambda (str) (concat "  \""
+                                                 (capitalize-first-word str)
+                                                 "\""))
 			 label-array
 			 ",\n")
 	      ",\n  NULL\n};\n\n")
