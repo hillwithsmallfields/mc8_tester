@@ -75,7 +75,7 @@ void loop()`{
     */
     for (int i = 0; i < 8; i++) {
       display_at(i,
-                 connectors[selected].wire_indices[i],
+                 labels[connectors[selected].wire_indices[i]],
                  analogRead(voltage_pins[i]),
                  analogRead(current_pins[i]));
     }
