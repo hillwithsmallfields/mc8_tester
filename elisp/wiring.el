@@ -1,6 +1,6 @@
 ;;; wiring.el --- wiring stuff
 
-;; Copyright (C) 2013, 2014, 2017  John Sturdy
+;; Copyright (C) 2013, 2014, 2019  John Sturdy
 
 ;; Author: John Sturdy <john.sturdy@citrix.com>
 ;; Keywords: 
@@ -120,39 +120,39 @@ Optional argument SORT-BY-COUNT is whether to sort by count."
 	(with-output-to-temp-buffer "*Connections*"
 	  (let ((conn-format
 		 (format "%% %ds: %%s\n" (reduce 'max (mapcar 'length (mapcar 'car connections))))))
-	    (setq connections (remove-if (lambda (a) (equal (car a) "unused"))
+	    (setq connections (remove-if #'(lambda (a) (equal (car a) "unused"))
 					 connections))
 	    (princ (format "%d connections:\n" (length connections)))
 	    (dolist (conn (sort connections
 				(if sort-by-count
-				    (lambda (a b)
-				      (let ((an (length (cdr a)))
-					    (bn (length (cdr b))))
-					(cond
-					 ((> an bn) t)
-					 ((< an bn) nil)
-					 (t (string< (car a) (car b))))))
-				  (lambda (a b)
-				    (string< (car a) (car b))))))
+				    #'(lambda (a b)
+                                        (let ((an (length (cdr a)))
+                                              (bn (length (cdr b))))
+                                          (cond
+                                           ((> an bn) t)
+                                           ((< an bn) nil)
+                                           (t (string< (car a) (car b))))))
+				  #'(lambda (a b)
+                                      (string< (car a) (car b))))))
 	      (princ (format conn-format
 			     (car conn)
 			     (mapconcat 'downcase
-					(mapcar '(lambda (pin)
-						   (let ((block (wiring-connection-block pin)))
-						     (if block
-							 (format "%s(%d,%d)"
-								 pin
-								 (wiring-connection-block-row block)
-								 (wiring-connection-block-column block))
-						       pin)))
+					(mapcar #'(lambda (pin)
+                                                    (let ((block (wiring-connection-block pin)))
+                                                      (if block
+                                                          (format "%s(%d,%d)"
+                                                                  pin
+                                                                  (wiring-connection-block-row block)
+                                                                  (wiring-connection-block-column block))
+                                                        pin)))
 						(sort (remove-duplicates (cdr conn)
 									 :test 'equal)
-						      (lambda (a b)
-							(let ((a-rank (wiring-connection-block a))
-							      (b-rank (wiring-connection-block b)))
-							  (if (and a-rank b-rank)
-							      (< a-rank b-rank)
-							    (string< a b))))))
+						      #'(lambda (a b)
+                                                          (let ((a-rank (wiring-connection-block a))
+                                                                (b-rank (wiring-connection-block b)))
+                                                            (if (and a-rank b-rank)
+                                                                (< a-rank b-rank)
+                                                              (string< a b))))))
 					", "))))))))))
 
 (defun wiring-connection-block-row (block)
@@ -188,7 +188,7 @@ Optional argument SORT-BY-COUNT is whether to sort by count."
     (princ "From front:\n\n")
     (wiring-connection-block-table 'identity)
     (princ "\n\nFrom back:\n\n")
-    (wiring-connection-block-table '(lambda (n) (- 7 n)))))
+    (wiring-connection-block-table #'(lambda (n) (- 7 n)))))
 
 (defun wiring-jump-to-definition ()
   "Jump to the definition of a symbol."
@@ -219,9 +219,9 @@ Optional argument SORT-BY-COUNT is whether to sort by count."
   (add-to-list 'org-modules 'org-agenda)
   (org-load-modules-maybe t)
   (setq wiring-org-files (mapcar
-			  (lambda (f)
-			    (expand-file-name (concat f ".org")
-					      "~/common/vehicles/Marmalade"))
+			  #'(lambda (f)
+                              (expand-file-name (concat f ".org")
+                                                "~/common/vehicles/Marmalade"))
 			  '("wiring" "switchpanel"))
 	org-agenda-files wiring-org-files
 	inhibit-startup-screen t)
@@ -339,8 +339,8 @@ nColumn: ")
     (insert "#include \"wiring.h\"\n\n")
     (let* ((label-array (make-vector istring nil))
 	   (total-bytes 8))
-      (maphash (lambda (lab ind)
-		 (aset label-array ind lab))
+      (maphash #'(lambda (lab ind)
+                   (aset label-array ind lab))
 	       strings)
       (let ((strings-size (+ (apply '+ (mapcar 'length label-array))
 					; add the terminators
@@ -352,14 +352,14 @@ nColumn: ")
 			))
 	(setq total-bytes (+ total-bytes strings-size (* 4 (length label-array)))))
       (insert "char **labels = {\n"
-	      (mapconcat (lambda (str) (concat "  \"" str "\""))
+	      (mapconcat #'(lambda (str) (concat "  \"" str "\""))
 			 label-array
 			 ",\n")
 	      ",\n  NULL\n};\n\n")
       (let ((names-size 0)
 	    (table-size (hash-table-size connectors)))
-	(maphash (lambda (k v) (setq names-size
-				     (+ names-size 1 (length k))))
+	(maphash #'(lambda (k v) (setq names-size
+                                       (+ names-size 1 (length k))))
 		 connectors)
 	(let ((table-bytes (* table-size (+ 4 (* 8 2)))))
 	  (insert (format "/* %d connectors occupying %d bytes, and %d bytes of connector names */\n"
@@ -371,21 +371,21 @@ nColumn: ")
 			       table-bytes))))
       (insert "connector *connectors = {\n")
       (let ((groups nil))
-	(maphash (lambda (k v)
-		   (push (cons (wiring-expand-short-names
-				(capitalize k))
-			       (mapconcat (lambda (n)
-					    (if (numberp n)
-						(number-to-string n)
-					      "-1"))
-					  v
-					  ","))
-			 groups)
-		   )
+	(maphash #'(lambda (k v)
+                     (push (cons (wiring-expand-short-names
+                                  (capitalize k))
+                                 (mapconcat #'(lambda (n)
+                                                (if (numberp n)
+                                                    (number-to-string n)
+                                                  "-1"))
+                                            v
+                                            ","))
+                           groups)
+                     )
 		 connectors)
 	(dolist (group (sort groups
-			     (lambda (a b)
-			       (string< (car a) (car b)))))
+			     #'(lambda (a b)
+                                 (string< (car a) (car b)))))
 	  (let ((name (car group))
 		(pins (cdr group)))
 	    (insert "  {\""
