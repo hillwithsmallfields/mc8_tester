@@ -31,6 +31,8 @@ int voltage_pins[8] = { A0, A2, A4, A6,
 int current_pins[8] = { A1, A3, A5, A7,
                         A9, A11, A13, A15 };
 
+/* Display a name, voltage, and current at one of 8 positions on the
+   screen.  Set the background colour according to some conditions. */
 static void display_at(int position,
                        char *wire_name,
                        int voltage,
@@ -44,7 +46,7 @@ void setup(void) {
 
   tft.begin();
 
-  // read diagnostics (optional but can help debug problems)
+  /* read diagnostics (optional but can help debug problems) */
   uint8_t x = tft.readcommand8(HX8357_RDPOWMODE);
   Serial.print("Display Power Mode: 0x"); Serial.println(x, HEX);
   x = tft.readcommand8(HX8357_RDMADCTL);
@@ -60,11 +62,32 @@ void setup(void) {
   selecting = true;
 }
 
+#define ABOVE_SELECTION 6
+#define BELOW_SELECTION 6
+
 void loop()`{
   int selected = 0;             /* which connector we are on */
+
+  int old_x, old_y;
+  bool old_pressed;
   
   if (selecting) {
     /* use touchscreen to select connector by name */
+    for (int i = 0; i < ABOVE_SELECTION+BELOW_SELECTION; i++) {
+      int which =               /* todo: calculate this */
+      MoveToRow(i);
+      DrawLabel(i, connectors[which]->label, which == selected);
+    }
+
+    /* todo: find the real calls for this */
+    int x; int y; bool pressed;
+    read_touch(&x, &y, &pressed);
+    if (pressed && old_pressed) {
+      selected += y - old_y;
+    } else if (pressed && x <= select_column) {
+      selected = y;
+    }
+    old_x = x; old_y = y; old_pressed = pressed;
   } else {
     /* check touchscreen for commands */
 
