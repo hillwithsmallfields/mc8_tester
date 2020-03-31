@@ -1,6 +1,6 @@
 ;;; wiring.el --- wiring stuff
 
-;; Copyright (C) 2013, 2014, 2019  John Sturdy
+;; Copyright (C) 2013, 2014, 2019, 2020  John Sturdy
 
 ;; Author: John Sturdy <john.sturdy@citrix.com>
 ;; Keywords: 
@@ -331,6 +331,10 @@ nColumn: ")
   (let ((strings (make-hash-table :test 'equal))
 	(istring 0)
 	(connectors (make-hash-table :test 'equal)))
+    (let ((unspecified-pins (make-vector 8 nil))))
+    (dotimes (i 8)
+      (puthash (number-to-string i) i strings))
+    (puthash "Unspecified" (vector 0 1 2 3 4 5 6 7) connectors)
     (while (re-search-forward "^ +| \\([A-Z_]+\\)_\\([1-8]\\) +| \\([^|]+?\\) +|" (point-max) t)
       (let ((connector (match-string 1))
 	    (pin (string-to-number (match-string 2)))
@@ -348,6 +352,7 @@ nColumn: ")
 	  (aset conn-pins (1- pin) string-number))))
     (find-file "/tmp/wiring.ino")
     (erase-buffer)
+    (message "Connectors is %S" connectors)
     (insert "#include \"mc8wiring.h\"\n\n")
     (let* ((label-array (make-vector istring nil))
 	   (total-bytes 8))
@@ -383,31 +388,37 @@ nColumn: ")
 	  (setq total-bytes (+ total-bytes
 			       names-size
 			       table-bytes))))
-      (insert "connector *connectors = {\n")
-      (let ((groups nil))
-	(maphash #'(lambda (k v)
-                     (push (cons (wiring-expand-short-names
-                                  (capitalize k))
-                                 (mapconcat #'(lambda (n)
-                                                (if (numberp n)
-                                                    (number-to-string n)
-                                                  "-1"))
-                                            v
-                                            ","))
-                           groups)
-                     )
-		 connectors)
-	(dolist (group (sort groups
-			     #'(lambda (a b)
-                                 (string< (car a) (car b)))))
-	  (let ((name (car group))
-		(pins (cdr group)))
-	    (insert "  {\""
-		    name
-		    "\", {"
-		    pins
-		    "}},\n"))))
-      (insert "  NULL\n};\n")
+      (let ((i 0)
+            (unspecified-index nil))
+        (insert "connector *connectors = {\n")
+        (let ((groups nil))
+	  (maphash #'(lambda (k v)
+                       (push (cons (wiring-expand-short-names
+                                    (capitalize k))
+                                   (mapconcat #'(lambda (n)
+                                                  (if (numberp n)
+                                                      (number-to-string n)
+                                                    "-1"))
+                                              v
+                                              ","))
+                             groups)
+                       )
+		   connectors)
+	  (dolist (group (sort groups
+			       #'(lambda (a b)
+                                   (string< (car a) (car b)))))
+	    (let ((name (car group))
+		  (pins (cdr group)))
+              (when (equal name "Unspecified")
+                (setq unspecified-index i))
+              (setq i (1+ i))
+	      (insert "  {\""
+		      name
+		      "\", {"
+		      pins
+		      "}},\n"))))
+        (insert "  NULL\n};\n")
+        (insert (format "int unspecified_index = %d;\n" unspecified-index)))
       (insert (format "/* %d bytes in total */\n" total-bytes)))
     (basic-save-buffer)))
 

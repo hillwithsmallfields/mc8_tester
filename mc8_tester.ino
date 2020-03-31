@@ -148,8 +148,8 @@ void setup(void) {
   x = tft.readcommand8(HX8357_RDDSDR);
   Serial.print("Self Diagnostic: 0x"); Serial.println(x, HEX);
 
-  /* show selection screen */
-  selecting = true;
+  /* start with measurements display until the user selects a connector */
+  selecting = false;
 }
 
 #define ABOVE_SELECTION 6
@@ -188,7 +188,7 @@ void display_selection_list(unsigned int first,
 }
                           
 void loop()`{
-  int selected = 0;             /* which connector we are on */
+  int selected = unspecified_index;             /* which connector we are on */
 
   uint16_t old_x, old_y;
   bool old_touched;
@@ -211,7 +211,7 @@ void loop()`{
         selected += y - old_y;
       } else if (x <= select_column)
         {
-          selected = y;
+          selected = y;         /* todo: scale this */
           selecting = false;
           start_displaying_connector(selected);
         }
