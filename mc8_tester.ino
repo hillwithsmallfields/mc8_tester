@@ -1,3 +1,10 @@
+#include <Adafruit_STMPE610.h>
+
+#include <Adafruit_SPITFT_Macros.h>
+#include <Adafruit_GFX.h>
+#include <gfxfont.h>
+#include <Adafruit_SPITFT.h>
+
 /* Touchscreen-based multi-connector voltage and current monitor
 
    I rebuilt and extended my Land Rover, and rewired it my own way.
@@ -52,10 +59,11 @@
 
 #include <SPI.h>
 #include <Wire.h>
-#include "Adafruit_GFX.h"
-#include "Adafruit_HX8357.h"
-#include "Adafruit_STMPE610.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_HX8357.h>
+#include <Adafruit_STMPE610.h>
 #include "mc8wiring.h"
+#include "wiring.h"
 
 // These are 'flexible' lines that can be changed
 #define TFT_CS 10
@@ -75,6 +83,7 @@ Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_STMPE610 touch = Adafruit_STMPE610();
 
 bool selecting;
+int select_column = 36;         /* todo: find a suitable value */
 
 #define N_WIRES 8
 
@@ -103,19 +112,19 @@ static void display_at(int position,
   uint16_t y = (position + 1) * row_height;
   
   tft.setCursor(NUMBER_COLUMN * char_width, y);
-  txt.setTextColor(BLACK, WHITE);
+  tft.setTextColor(HX8357_BLACK, HX8357_WHITE);
   tft.print(position+1);
 
   tft.setCursor(VOLTAGE_COLUMN * char_width, y);
-  txt.setTextColor(voltage > 9 ? RED : BLUE, voltage > 9 ? YELLOW: CYAN);
+  tft.setTextColor(voltage > 9 ? HX8357_RED : HX8357_BLUE, voltage > 9 ? HX8357_YELLOW: HX8357_CYAN);
   tft.print(voltage);
 
   tft.setCursor(CURRENT_COLUMN * char_width, y);
-  txt.setTextColor(BLACK, WHITE);
+  tft.setTextColor(HX8357_BLACK, HX8357_WHITE);
   tft.print(current);
 
   tft.setCursor(LABEL_COLUMN * char_width, y);
-  txt.setTextColor(BLACK, WHITE);
+  tft.setTextColor(HX8357_BLACK, HX8357_WHITE);
   tft.print(wire_name);
 }
 
@@ -156,8 +165,8 @@ void setup(void) {
 #define BELOW_SELECTION 6
 
 void start_displaying_connector(int selected) {
-  tft.fillscreen(WHITE);
-  tft.setTextColor(BLUE);
+  tft.fillScreen(HX8357_WHITE);
+  tft.setTextColor(HX8357_BLUE);
   tft.drawRect(0, row_height, screen_width, row_height);
   tft.setCursor(0, row_height);
   tft.print(connectors[selected]->label);
@@ -165,21 +174,21 @@ void start_displaying_connector(int selected) {
     uint16_t y = (position + 1) * row_height;
     tft.drawRoundRect(NUMBER_COLUMN * char_width, y,
                       (VOLTAGE_COLUMN - NUMBER_COLUMN) * char_width, row_height - 2,
-                      3, BLACK);
+                      3, HX8357_BLACK);
     tft.drawRoundRect(VOLTAGE_COLUMN * char_width, y,
                       (CURRENT_COLUMN - VOLTAGE_COLUMN) * char_width, row_height - 2,
-                      3, BLACK);
+                      3, HX8357_BLACK);
     tft.drawRoundRect(CURRENT_COLUMN * char_width, y,
                       (LABEL_COLUMN - CURRENT_COLUMN) * char_width, row_height - 2,
-                      3, BLACK);
+                      3, HX8357_BLACK);
     tft.drawRoundRect(NUMBER_COLUMN * char_width, y,
                       screen_width - ((LABEL_COLUMN * char_width) + 2), row_height - 2,
-                      3, BLACK);
+                      3, HX8357_BLACK);
   }
   tft.drawRoundRect(NUMBER_COLUMN, row_height * 9,
                     screen_width, row_height,
-                    3, YELLOW);
-  tft.setTextColor(BLACK, YELLOW);
+                    3, HX8357_YELLOW);
+  tft.setTextColor(HX8357_BLACK, HX8357_YELLOW);
   tft.print("Change connector");
 }
 
@@ -187,7 +196,7 @@ void display_selection_list(unsigned int first,
                             uint16_t offset) {
 }
                           
-void loop()`{
+void loop() {
   int selected = unspecified_index;             /* which connector we are on */
 
   uint16_t old_x, old_y;
@@ -224,7 +233,7 @@ void loop()`{
       /* are we in the back button? */
       if (y > row_height * 8) {
         selecting = true;
-        tft.fillscreen(BLACK);
+        tft.fillScreen(HX8357_BLACK);
       } else {
         /* nothing to do here for now; if I fitted pass transistors or
            relays I might later make it possible to connect and

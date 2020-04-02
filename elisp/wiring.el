@@ -368,7 +368,7 @@ nColumn: ")
 			(* 4 (length label-array))
 			))
 	(setq total-bytes (+ total-bytes strings-size (* 4 (length label-array)))))
-      (insert "char **labels = {\n"
+      (insert "char *labels[] = {\n"
 	      (mapconcat #'(lambda (str) (concat "  \""
                                                  (capitalize-first-word str)
                                                  "\""))
@@ -390,7 +390,7 @@ nColumn: ")
 			       table-bytes))))
       (let ((i 0)
             (unspecified-index nil))
-        (insert "connector *connectors = {\n")
+        (insert "connector connectors[] = {\n")
         (let ((groups nil))
 	  (maphash #'(lambda (k v)
                        (push (cons (wiring-expand-short-names
