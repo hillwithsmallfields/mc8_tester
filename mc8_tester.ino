@@ -93,15 +93,15 @@ int voltage_pins[N_WIRES] = { A0, A2, A4, A6,
 int current_pins[N_WIRES] = { A1, A3, A5, A7,
                               A9, A11, A13, A15 };
 
-uint16_t row_height;
-uint16_t char_width = 8;
+int16_t row_height;
+int16_t char_width = 8;
 
 #define NUMBER_COLUMN 1
 #define VOLTAGE_COLUMN 4
 #define CURRENT_COLUMN 8
 #define LABEL_COLUMN 12
 
-uint16_t screen_width;
+int16_t screen_width;
 
 /* Display a name, voltage, and current at one of 8 positions on the
    screen.  Set the background colour according to some conditions. */
@@ -167,11 +167,11 @@ void setup(void) {
 void start_displaying_connector(int selected) {
   tft.fillScreen(HX8357_WHITE);
   tft.setTextColor(HX8357_BLUE);
-  tft.drawRect(0, row_height, screen_width, row_height);
+  tft.drawRect(0, row_height, screen_width, row_height, HX8357_BLUE);
   tft.setCursor(0, row_height);
-  tft.print(connectors[selected]->label);
+  tft.print(connectors[selected].label);
   for (unsigned int i = 0; i < 8; i++) {
-    uint16_t y = (position + 1) * row_height;
+    uint16_t y = (i + 1) * row_height;
     tft.drawRoundRect(NUMBER_COLUMN * char_width, y,
                       (VOLTAGE_COLUMN - NUMBER_COLUMN) * char_width, row_height - 2,
                       3, HX8357_BLACK);
@@ -195,23 +195,30 @@ void start_displaying_connector(int selected) {
 void display_selection_list(unsigned int first,
                             uint16_t offset) {
 }
-                          
+
+void move_to_row(int i) {
+}
+
+void draw_label(int i, char *label, bool active) {
+}
+
 void loop() {
   int selected = unspecified_index;             /* which connector we are on */
 
+  uint16_t x, y;
+  uint8_t z;
   uint16_t old_x, old_y;
   bool old_touched;
 
   if (selecting) {
     /* use touchscreen to select connector by name */
     for (int i = 0; i < ABOVE_SELECTION+BELOW_SELECTION; i++) {
-      int which =               /* todo: calculate this */
-      MoveToRow(i);
-      DrawLabel(i, connectors[which]->label, which == selected);
+      int which = i;              /* todo: calculate this */
+      move_to_row(i);
+      draw_label(i, connectors[which].label, which == selected);
     }
 
     /* todo: find the real calls for this */
-    uint16_t x, y, z;
 
     bool touched = touch.touched();
     if (touched) {
